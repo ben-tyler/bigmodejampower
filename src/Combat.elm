@@ -25,7 +25,7 @@ findPowerForDice dices dice amt =
         |> List.map (\_ -> 1)
         |> List.sum
         |> (\s ->
-                if s > 2 then
+                if s > 1 then
                     s
 
                 else
@@ -192,7 +192,7 @@ update msg model =
             )
 
         UsePower power ->
-            if power.cost < model.playerPwr then
+            if power.cost <= model.playerPwr then
                 ( usePower power model
                     |> removePower power
                 , Cmd.none
@@ -227,6 +227,7 @@ update msg model =
                                 , turn = EnemyTurn
                                 , dice = initDice
                                 , rollsLeft = 5
+                                , redText = ""
                             }
                     in
                     ( nextModel
@@ -245,6 +246,7 @@ update msg model =
                                         , turn = PlayerTurn
                                         , dice = initDice
                                         , rollsLeft = 5
+                                        , redText = ""
                                     }
                             in
                             ( nextModel
@@ -260,7 +262,10 @@ update msg model =
 
         Roll ->
             if model.rollsLeft > 0 then
-                ( { model | rollsLeft = model.rollsLeft - 1 }, Random.generate NewRoll rollGenerator, None )
+                ( { model | rollsLeft = model.rollsLeft - 1, redText = "" }
+                , Random.generate NewRoll rollGenerator
+                , None
+                )
 
             else
                 ( model, Cmd.none, None )
@@ -353,7 +358,7 @@ init city player =
     , playerDef = 5
     , playerPwr = 0
     , enemyAtck = 0
-    , enemyDef = 5
+    , enemyDef = 6
     , turn = PlayerTurn
     , redText = ""
     , enemyTurn = Nothing

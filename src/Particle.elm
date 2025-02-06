@@ -35,8 +35,8 @@ init =
     }
 
 
-create : Maybe String -> Vec2 -> Model -> Model
-create maybeString position model =
+create : Maybe String -> Vec2 -> Color.Color -> Model -> Model
+create maybeString position color model =
     let
         newEffect =
             { particles =
@@ -52,7 +52,7 @@ create maybeString position model =
                 , { position = Vec2.add position (vec2 -2 1), velocity = Vec2.vec2 0 -1, lifetime = 150 }
                 ]
             , text = maybeString
-            , color = Color.red
+            , color = color
             , position = position
             }
     in

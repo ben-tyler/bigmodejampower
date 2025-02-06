@@ -60,6 +60,7 @@ type alias Model =
     , particle : Particle.Model
     , enemies : Enemies.Model
     , gameState : GameState
+    , dt : Float
     }
 
 
@@ -69,6 +70,8 @@ type Msg
     | CombatMsg Combat.Msg
     | PowerSelectMsg PowerSelect.Msg
     | Test
+    | ToMenu
+    | StartGame
 
 
 init : Dimensions -> ( Model, Cmd Msg )
@@ -84,9 +87,10 @@ init { width, height } =
       , creatingPowerLine = Nothing
       , powerLines = []
       , powerSelect = Nothing
-      , particle = Particle.init |> Particle.create Nothing (vec2 100 100)
+      , particle = Particle.init |> Particle.create Nothing (vec2 100 100) Color.yellow
       , enemies = Enemies.init
-      , gameState = Playing
+      , gameState = Menu
+      , dt = 0
       }
     , Cmd.none
     )
@@ -148,6 +152,7 @@ handleCombat subMsg model =
                                         else
                                             c
                                     )
+                        , particle = Particle.create (Just <| "Powerplant Obtained!") city.position Color.lightBlue model.particle
 
                         -- , player = { p | position = vec2 50 50 }
                       }
@@ -162,14 +167,14 @@ handleCombat subMsg model =
                     ( { model
                         | combat = Nothing
                         , gameState = Defeated
-                        , particle = Particle.create (Just <| "Death Blow") model.player.position model.particle
+                        , particle = Particle.create (Just <| "Death Blow") model.player.position Color.red model.particle
                       }
                     , subcmd |> Cmd.map CombatMsg
                     )
 
                 Combat.DamageParticle pos amt ->
                     ( { model
-                        | particle = Particle.create (Just <| String.fromInt amt) pos model.particle
+                        | particle = Particle.create (Just <| String.fromInt amt) pos Color.red model.particle
                         , combat = Just submodel
                       }
                     , subcmd |> Cmd.map CombatMsg
@@ -182,6 +187,22 @@ handleCombat subMsg model =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
+        StartGame ->
+            let
+                ( m, c ) =
+                    init { width = model.width, height = model.height }
+            in
+            ( { m | gameState = Playing }
+            , c
+            )
+
+        ToMenu ->
+            ( { model
+                | gameState = Menu
+              }
+            , Cmd.none
+            )
+
         Test ->
             ( { model
                 | enemies = Enemies.addEnemy model.enemies model.cities
@@ -194,6 +215,7 @@ update msg model =
                 | count = model.count + 1
                 , particle = Particle.update dt model.particle
                 , enemies = Enemies.update dt model.enemies
+                , dt = dt
               }
                 |> gameLoop dt
             , Cmd.none
@@ -240,20 +262,20 @@ update msg model =
 gameLoop : Float -> Model -> Model
 gameLoop dt model =
     let
-        foo =
-            model.cities
-                |> List.map
-                    (\city ->
-                        CollisionDetection.checkCollision
-                            { position = city.position, boundingBox = city.boundingBox }
-                            { position = model.player.position, boundingBox = model.player.boundingBox }
-                    )
-                |> List.filter (\c -> c /= NoCollision)
-
+        {- foo =
+           model.cities
+               |> List.map
+                   (\city ->
+                       CollisionDetection.checkCollision
+                           { position = city.position, boundingBox = city.boundingBox }
+                           { position = model.player.position, boundingBox = model.player.boundingBox }
+                   )
+               |> List.filter (\c -> c /= NoCollision)
+        -}
         onCityPress =
             if model.keys.space then
                 model.cities
-                    |> List.filter (\c -> Vec2.distance c.position model.player.position < 100)
+                    |> List.filter (\c -> Vec2.distance (Vec2.add (vec2 50 50) c.position) model.player.position < 100)
                     |> List.head
 
             else
@@ -354,11 +376,23 @@ handleSpaceBarClickOnCity city model =
                     if newPowerLine.city2.powerOptions /= [] then
                         Just (PowerSelect.init newPowerLine.city2)
 
+                    else if newPowerLine.city1.powerOptions /= [] then
+                        Just (PowerSelect.init newPowerLine.city1)
+
                     else
                         Nothing
 
                 Nothing ->
                     Nothing
+        , particle =
+            if city.owner == Cities.PlayerOwned && model.particle.effects == [] then
+                Particle.create Nothing
+                    city.position
+                    Color.yellow
+                    model.particle
+
+            else
+                model.particle
     }
 
 
@@ -374,7 +408,8 @@ subscriptions model =
 view : Model -> Html Msg
 view ({ width, height } as model) =
     div [ style "font-family" "Audiowide" ]
-        [ case model.gameState of
+        [ --Html.text <| Debug.toString model.player.position
+          case model.gameState of
             Playing ->
                 viewPlaying model
 
@@ -388,15 +423,60 @@ view ({ width, height } as model) =
 
 viewDefeated : Model -> Html Msg
 viewDefeated model =
-    div []
-        [ Html.text "YOU HAVE DIED"
+    div
+        []
+        [ div
+            [ style "position" "absolute"
+            , style "top" "20px"
+            , style "left" "0px"
+            , style "width" "550px"
+            , style "height" "330px"
+            , style "text-align" "center"
+            ]
+            [ Html.h1 [] [ Html.text "YOU HAVE DIED" ]
+            , Html.h1 [] [ Html.button [ style "font-family" "Audiowide", style "font-size" "20px", Html.Events.onClick ToMenu ] [ Html.text "fin" ] ]
+            ]
+        , Canvas.toHtml
+            ( round model.width, round model.height )
+            []
+            [ clearScreen model
+            , Player.renderPlayer model.count model.player model.camera
+            , Particle.view model.camera model.particle
+            ]
         ]
 
 
 viewMenu : Model -> Html Msg
 viewMenu model =
-    div []
-        [ Html.text "YOU HAVE DIED"
+    div
+        []
+        [ div
+            [ style "position" "absolute"
+            , style "top" "20px"
+            , style "left" "0px"
+            , style "width" "550px"
+            , style "height" "330px"
+            , style "text-align" "center"
+            , style "font-size" "12px"
+            ]
+            [ Html.h1 [] [ Html.text "Power Plant Dice" ]
+            , Html.h3 [] [ Html.text "How to play: " ]
+            , Html.p []
+                [ Html.text "Move with arrows or wasd" ]
+            , Html.p []
+                [ Html.text "Press Space to interact with power plants -> Grey Power Plants (Enemy Owned) will start dice game. Blue Power Plants (Player Owned) will start power connection" ]
+            , Html.h3 [] [ Html.text "Dice Game " ]
+            , Html.p []
+                [ Html.text "Roll the dice, then select the dice you would like to re-roll. Sword Icons will do +1 Damage this turn, Sheild Icons will add +1 to Defence" ]
+            , Html.p []
+                [ Html.text "Two or more of a dice kind will add power, which can be spent on powers the you have collected" ]
+            , Html.p []
+                [ Html.text "After winning the match you will take controll of the power plant" ]
+            , Html.h3 [] [ Html.text "Connect Power Plants " ]
+            , Html.p []
+                [ Html.text "Connect two power plants you own to select a power you can use in the dice game" ]
+            , Html.div [] [ Html.button [ style "font-family" "Audiowide", style "font-size" "20px", Html.Events.onClick StartGame ] [ Html.text "Start Game" ] ]
+            ]
         ]
 
 
@@ -531,7 +611,7 @@ background camera =
         []
         [ shapes
             [ fill Color.darkGreen ]
-            [ rect ( -500 + ox, -500 + oy ) 2000 2000 ]
+            [ rect ( -1000 + ox, -500 + oy ) 3000 3000 ]
         , shapes
             [ stroke Color.black ]
             gridLines

@@ -3,6 +3,11 @@ module Types exposing (..)
 import Math.Vector2 as Vec2 exposing (Vec2, getX, vec2)
 
 
+speed : Float
+speed =
+    0.1
+
+
 type alias Power =
     { title : String
     , description : String

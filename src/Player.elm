@@ -8,7 +8,7 @@ import Color
 import Keys exposing (Keys)
 import Math.Vector2 as Vec2 exposing (Vec2, direction, vec2)
 import Math.Vector4 exposing (vec4)
-import Types exposing (Camera, Power, toPoint)
+import Types exposing (Camera, Power, speed, toPoint)
 
 
 type Direction
@@ -48,33 +48,38 @@ updatePlayer : Float -> Keys -> Player -> Player
 updatePlayer dt keys person =
     let
         y =
-            if keys.up then
+            (if keys.up then
                 -1
 
-            else
+             else
                 0
-                    + (if keys.down then
-                        1
+            )
+                + (if keys.down then
+                    1
 
-                       else
-                        0
-                      )
+                   else
+                    0
+                  )
 
         x =
-            if keys.right then
+            (if keys.right then
                 1
 
-            else
+             else
                 0
-                    + (if keys.left then
-                        -1
+            )
+                + (if keys.left then
+                    -1
 
-                       else
-                        0
-                      )
+                   else
+                    0
+                  )
+
+        velocity =
+            Vec2.scale (dt * speed) (vec2 x y)
 
         position =
-            Vec2.add person.position (vec2 x y)
+            Vec2.add person.position velocity
     in
     { person
         | position = position
@@ -87,13 +92,7 @@ updatePlayer dt keys person =
 
             else
                 person.direction
-        , moving =
-            case ( x, y ) of
-                ( 0, 0 ) ->
-                    False
-
-                _ ->
-                    True
+        , moving = x /= 0 || y /= 0
     }
 
 
