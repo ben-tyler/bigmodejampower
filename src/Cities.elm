@@ -24,7 +24,7 @@ initPower id powerEffect =
         LowerDefence ->
             { title = "Complete Sabatarge"
             , description = "Lowers the defence of a power plant to 1"
-            , cost = 3
+            , cost = 6
             , effect = LowerDefence
             , id = id
             }
@@ -41,14 +41,14 @@ initPower id powerEffect =
             { title = "Power Defence"
             , description = "Increase your defence by 2"
             , cost = 3
-            , effect = NoEffect
+            , effect = BuffDefence
             , id = id
             }
 
         DoubleDefence ->
-            { title = "Total Power Dedence"
+            { title = "Total Power Defence"
             , description = "Double your current defence"
-            , cost = 3
+            , cost = 4
             , effect = DoubleDefence
             , id = id
             }
@@ -56,7 +56,7 @@ initPower id powerEffect =
         DoubleAttack ->
             { title = "Total Power Buff"
             , description = "Double your current base attack"
-            , cost = 3
+            , cost = 4
             , effect = DoubleAttack
             , id = id
             }
@@ -64,7 +64,7 @@ initPower id powerEffect =
         IncreaseRolls ->
             { title = "Reroll Power"
             , description = "Increase the amount of roles your have left"
-            , cost = 3
+            , cost = 2
             , effect = IncreaseRolls
             , id = id
             }
@@ -72,7 +72,7 @@ initPower id powerEffect =
         DestoryEnemyTurn ->
             { title = "Suck Powerplant Power"
             , description = "Nullify the enemies turn"
-            , cost = 3
+            , cost = 2
             , effect = DestoryEnemyTurn
             , id = id
             }
@@ -81,6 +81,7 @@ initPower id powerEffect =
 initCities : List City
 initCities =
     [ City
+        Color.purple
         (vec2 100 250)
         (BoundingBox
             (vec2 50 50)
@@ -94,7 +95,9 @@ initCities =
         , initPower 2 DestoryEnemyTurn
         , initPower 3 IncreaseRolls
         ]
-    , City (vec2 500 300)
+    , City
+        Color.lightGray
+        (vec2 -150 300)
         (BoundingBox
             (vec2 0 0)
             (vec2 0 0)
@@ -107,20 +110,23 @@ initCities =
         , initPower 5 BuffAttack
         , initPower 6 DoubleDefence
         ]
-    , City (vec2 300 280)
+    , City
+        Color.lightGray
+        (vec2 300 280)
         (BoundingBox
             (vec2 0 0)
             (vec2 0 0)
         )
         EnemyOwned
         3
-        ( 1, 3 )
-        ( 0, 2 )
+        ( 1, 2 )
+        ( 0, 0 )
         [ initPower 7 LowerDefence
         , initPower 8 BuffAttack
-        , initPower 9 BuffAttack
+        , initPower 9 BuffDefence
         ]
-    , City (vec2 600 50)
+    , City Color.grey
+        (vec2 450 50)
         (BoundingBox
             (vec2 0 0)
             (vec2 0 0)
@@ -133,7 +139,8 @@ initCities =
         , initPower 11 BuffAttack
         , initPower 12 DoubleAttack
         ]
-    , City (vec2 800 400)
+    , City Color.grey
+        (vec2 -400 50)
         (BoundingBox
             (vec2 0 0)
             (vec2 0 0)
@@ -141,9 +148,13 @@ initCities =
         EnemyOwned
         5
         ( 3, 6 )
-        ( 2, 5 )
-        []
-    , City (vec2 500 800)
+        ( 0, 4 )
+        [ initPower 13 LowerDefence
+        , initPower 14 DestoryEnemyTurn
+        , initPower 15 IncreaseRolls
+        ]
+    , City Color.darkGrey
+        (vec2 500 550)
         (BoundingBox
             (vec2 0 0)
             (vec2 0 0)
@@ -152,7 +163,25 @@ initCities =
         6
         ( 4, 8 )
         ( 5, 8 )
-        []
+        [ initPower 16 DoubleDefence
+        , initPower 17 DestoryEnemyTurn
+        , initPower 18 DoubleAttack
+        ]
+    , City
+        Color.darkGrey
+        (vec2 -400 550)
+        (BoundingBox
+            (vec2 0 0)
+            (vec2 0 0)
+        )
+        EnemyOwned
+        6
+        ( 4, 8 )
+        ( 5, 8 )
+        [ initPower 19 DoubleDefence
+        , initPower 20 DestoryEnemyTurn
+        , initPower 21 DoubleAttack
+        ]
     ]
 
 
@@ -162,7 +191,8 @@ type Owner
 
 
 type alias City =
-    { position : Vec2
+    { color : Color.Color
+    , position : Vec2
     , boundingBox : BoundingBox
     , owner : Owner
     , id : Int
@@ -187,7 +217,7 @@ renderCity camera frame city =
     shapes
         [ case city.owner of
             EnemyOwned ->
-                fill Color.gray
+                fill city.color
 
             PlayerOwned ->
                 fill Color.blue
